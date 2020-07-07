@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        id="cordova-plugin-serialport-rw" version="1.0">
+    <name>cordova-plugin-serialport-rw</name>
+    <description>Cordova Plugin</description>
+    <license>Apache 2.0</license>
+    <keywords></keywords>
+    <repo></repo>
+    <issue></issue>
+    <js-module src="www/SerialPortRW.js" name="SerialPortRW">
+        <clobbers target="SerialPortRW" />
+    </js-module>
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="SerialPortRW">
+                <param name="android-package" value="android_serialport_api.sample.SerialPortRW"/>
+            </feature>
+        </config-file>
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+        </config-file>
+        <source-file src="src/android/api/SerialPort.java" target-dir="src/android_serialport_api"/>
+        <source-file src="src/android/api/SerialPortFinder.java" target-dir="src/android_serialport_api"/>
+        <source-file src="src/android/SerialPortRW.java" target-dir="src/android_serialport_api/sample"/>
+        
+		<source-file src="src/android/build-extras.gradle" target-dir="."/>
+        <source-file src="src/android/jni/Android.mk" target-dir="app/src/main/java/c/android/jni/"/>
+        <source-file src="src/android/jni/Application.mk" target-dir="app/src/main/java/c/android/jni/"/>
+        <source-file src="src/android/jni/gen_SerialPort_h.sh" target-dir="app/src/main/java/c/android/jni/"/>
+        <source-file src="src/android/jni/SerialPort.c" target-dir="app/src/main/java/c/android/jni/"/>
+        <source-file src="src/android/jni/SerialPort.h" target-dir="app/src/main/java/c/android/jni/"/>
+
+        <source-file src="src/android/libs/armeabi-v7a/libserial_port.so" target-dir="app/src/main/jniLibs/armeabi-v7a/"/>
+    </platform>
+ 
+</plugin>

@@ -1,0 +1,18 @@
+android {
+    packagingOptions {
+        pickFirst 'app/src/main/jniLibs/armeabi-v7a/libserial_port.so'
+    }
+    defaultConfig {
+        externalNativeBuild {
+            ndkBuild {
+                arguments "-j4"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        ndkBuild {
+            path "app/src/main/java/c/android/jni/Android.mk"
+        }
+    }
+}
