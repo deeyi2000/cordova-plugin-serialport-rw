@@ -24,33 +24,37 @@ import android_serialport_api.SerialPortFinder;
 public class SerialPortRW extends CordovaPlugin {
 	private static final String TAG = "SerialPortRW";
 	private SerialPortFinder mSerialPortFinder = new SerialPortFinder();
-//	protected SerialPort mSerialPort;
-//	protected OutputStream mOutputStream;
-//	private InputStream mInputStream;
-//	private ReadThread mReadThread;
+	//protected SerialPort mSerialPort;
+	//protected OutputStream mOutputStream;
+	//private InputStream mInputStream;
+	//private ReadThread mReadThread;
 	private SerialPortRW instance;
-	private int baudRate;
-	private String port;
-	private int Size=0;
+	//private int baudRate;
+	//private String port;
+	//private int Size=0;
 	private boolean isTimer=true;
-	private byte[] dateBuffer=new byte[64];
+	private byte[] dateBuffer=new byte[128];
 	private Long interval=(long) 0;
 	Map<String,SerialModel> mSerialList = new HashMap<>(16);
 
-	 class SerialModel {
+	class SerialModel {
 		InputStream mInputStream;
 		OutputStream mOutputStream;
 		SerialPortRW.ReadThread mReadThread;
 		SerialPort mSerialPort;
+		int Size=0;
+		boolean isTimer=true;
+		byte[] dateBuffer=new byte[128];
+		Long interval=(long) 0;
 	}
 
 	 class ReadThread extends Thread {
 		private CallbackContext mCallbackContext;
-		private String  port;
-		public ReadThread(String port,CallbackContext callbackContext) {
+		private SerialModel  mModel;
+		public ReadThread(SerialModel model,CallbackContext callbackContext) {
 			super();
 			mCallbackContext = callbackContext;
-			this.port = port;
+			this.mModel = model;
 		}
 		
 		@Override
@@ -60,27 +64,27 @@ public class SerialPortRW extends CordovaPlugin {
 				int size;
 				try {
 					byte[] buffer = new byte[64];
-					SerialModel serialModel = mSerialList.get(port);
-					size = serialModel.mInputStream.read(buffer);
-					interval=System.currentTimeMillis();
+					size = mModel.mInputStream.read(buffer);
+					mModel.interval=System.currentTimeMillis();
 					for(int i=0;i<size;i++){
-						dateBuffer[Size+i] = buffer[i];
+						if((mModel.Size+i) >= mModel.dateBuffer.length) break;
+						mModel.dateBuffer[mModel.Size+i] = buffer[i];
 					};
-					Size+=size;
-					if (size>0 && Size>0) {
-						if(isTimer){
-							isTimer=false;
+					mModel.Size+=size;
+					if (size>0 && mModel.Size>0) {
+						if(mModel.isTimer){
+							mModel.isTimer=false;
 							final Timer timer = new Timer(); 
 							timer.schedule(new TimerTask(){
 								public void run(){
 									Long tsLong = System.currentTimeMillis();
-									if(tsLong-75>interval){
-										onDataReceived(dateBuffer, Size, mCallbackContext);
-										interval=(long) 0;
-										Size=0;
-										dateBuffer=new byte[64];
+									if(tsLong-75> mModel.interval){
+										onDataReceived(mModel.dateBuffer, mModel.Size, mCallbackContext);
+										mModel.interval=(long) 0;
+										mModel.Size=0;
+										mModel.dateBuffer=new byte[128];
 										timer.cancel();
-										isTimer=true;
+										mModel.isTimer=true;
 									}
 								}
 							}, 75, 75);
@@ -134,8 +138,8 @@ public class SerialPortRW extends CordovaPlugin {
 		cordova.getThreadPool().execute(new Runnable() {
 			public void run() {
 				try {
-					baudRate = args.getInt(1);
-					port = args.getString(0);
+					int baudRate = args.getInt(1);
+					String port = args.getString(0);
 					SerialPort serialPort = new SerialPort(new File(port), baudRate, 0);
 					SerialModel serialModel = new SerialModel();
 					serialModel.mSerialPort = serialPort;
@@ -164,21 +168,18 @@ public class SerialPortRW extends CordovaPlugin {
 		}
 		cordova.getActivity().runOnUiThread(new Runnable() {
 			public void run() {
-				
 				if (callbackContext != null) {
 		            PluginResult result = new PluginResult(PluginResult.Status.OK, dataBuffer);
 		            result.setKeepCallback(true);
 		            callbackContext.sendPluginResult(result);
-		            Size=0;
 		        }
-			
 			}
 		});
 	}
 
 	public void registry(final CordovaArgs args,final CallbackContext callbackContext){
 		try {
-			port = args.getString(0);
+			String port = args.getString(0);
 			SerialModel serialModel = mSerialList.get(port);
 			if (serialModel.mSerialPort != null) {
 				PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT);
@@ -198,7 +199,7 @@ public class SerialPortRW extends CordovaPlugin {
 	public void startRead(SerialModel serialModel,final CallbackContext callbackContext){
 		serialModel.mOutputStream = serialModel.mSerialPort.getOutputStream();
 		serialModel.mInputStream = serialModel.mSerialPort.getInputStream();
-		ReadThread mReadThread = new ReadThread(port,callbackContext);
+		ReadThread mReadThread = new ReadThread(serialModel,callbackContext);
 		mReadThread.start();
 		serialModel.mReadThread = mReadThread;
 	}
@@ -240,7 +241,7 @@ public class SerialPortRW extends CordovaPlugin {
 	
 	public void closeSerialPort(CordovaArgs args,CallbackContext callbackContext) {
 		try {
-			port = args.getString(0);
+			String port = args.getString(0);
 			SerialModel serialModel = mSerialList.get(port);
 			if (serialModel.mReadThread != null) {
 				serialModel.mReadThread.interrupt();
